@@ -2,7 +2,6 @@
 .env
 .envrc
 workspace/
-data/
 __pycache__/
 *.pyc
 .DS_Store
