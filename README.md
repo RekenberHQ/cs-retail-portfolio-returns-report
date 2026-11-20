@@ -39,6 +39,7 @@ The report contains exactly these columns:
 | PREDP_USP | Expected return selected using the rules below |
 | PREDP_USP_AKT | Latest ZOPO's `obligations_summary.current_return_rate`; nullable |
 | NOTE | Manual edge-case explanation |
+| DATUM_EXPORTU | Export date in Europe/Prague, identical for every row |
 
 Rates use **percentage points** in both API/annotation values and Excel: enter
 `60` for 60%, `0.5` for 0.5%. Excel displays a literal percent sign without

@@ -22,7 +22,7 @@ from .rules import build_row, parse_date, rate
 from .publishing import publish_report
 
 CREDITORS = ("45244782", "60197609")
-COLUMNS = ["SPIS_ZNACKA", "DATUM_UPADKU", "STAV", "PREDP_USP", "PREDP_USP_AKT", "NOTE"]
+COLUMNS = ["SPIS_ZNACKA", "DATUM_UPADKU", "STAV", "PREDP_USP", "PREDP_USP_AKT", "NOTE", "DATUM_EXPORTU"]
 APPROVAL_EVENT_TYPES = {174, 175, 1065}
 
 
@@ -232,7 +232,7 @@ def write_workbook(path, columns, rows, title, widths):
             if isinstance(cell.value, str):
                 cell.data_type = "s"
             cell.alignment = Alignment(vertical="top", wrap_text=True)
-            if columns[cell.column - 1] == "DATUM_UPADKU":
+            if columns[cell.column - 1] in {"DATUM_UPADKU", "DATUM_EXPORTU"}:
                 cell.number_format = "dd.mm.yyyy"
             elif columns[cell.column - 1] in {"PREDP_USP", "PREDP_USP_AKT", "expected_return_rate"}:
                 cell.number_format = '0.00"%"'
@@ -285,12 +285,14 @@ def run(args):
     annotations_path = Path(os.getenv("REKENBER_ANNOTATIONS_PATH", "data/discharge_annotations.jsonl"))
     annotations = load_annotations(annotations_path)
     rows, missing, audit = [], [], []
+    export_date = datetime.now(ZoneInfo("Europe/Prague")).date()
     for key, ins in sorted(details.items(), key=lambda pair: (pair[1]["reference_number"]["year"], pair[1]["reference_number"]["case_number"])):
         correction = annotations.get(key, {})
         if str(correction.get("note") or "").strip().casefold() == "exclude":
             continue
         people = [debtors.get(d.get("href"), d) for d in ins.get("debtors", [])]
         row, reasons = build_row(ins, discharges[key] or {}, people, current[key], correction)
+        row["DATUM_EXPORTU"] = export_date
         rows.append(row)
         audit.append({"insolvency_id": key, **row, "latest_zopo_document_id": document_id(latest_event(events[key], 39))})
         if reasons:
@@ -308,7 +310,7 @@ def run(args):
     if missing:
         append_annotation_templates(annotations_path, missing, annotations)
         raise SystemExit(f"Export stopped: {len(missing)} insolvencies need a rate or note in {annotations_path}. Edit the JSONL rows, then rerun the same command.")
-    write_workbook(output, COLUMNS, rows, "Report", [25, 22, 20, 20, 22, 90])
+    write_workbook(output, COLUMNS, rows, "Report", [25, 22, 20, 20, 22, 90, 22])
     summary["status"] = "complete"
     write_json(workspace / "summary.json", summary)
     logging.info("Exported %d insolvencies to %s", len(rows), output)
